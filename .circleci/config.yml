@@ -1,0 +1,54 @@
+version: 2.1
+
+jobs:
+  lint-app:
+    docker:
+      - image: circleci/node:16
+    steps:
+      - checkout
+  build-docker:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Build docker container for each microservices
+          command: |
+            echo "--------- Installing dependencies-----------"
+            curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node -v
+            npm -v
+
+            echo "--------- The images is Building ------------"
+
+            docker build -t udagram-api-feed ./cd0354-monolith-to-microservices-project/udagram-api-feed
+            docker tag udagram-api-feed nguyenducanh1999/udagram-api-feed
+
+            docker build -t udagram-api-user ./cd0354-monolith-to-microservices-project/udagram-api-user
+            docker tag udagram-api-user nguyenducanh1999/udagram-api-user
+            
+            docker build -t udagram-frontend ./cd0354-monolith-to-microservices-project/udagram-frontend
+            docker tag udagram-frontend nguyenducanh1999/udagram-frontend
+
+            docker build -t udagram-reverseproxy ./cd0354-monolith-to-microservices-project/udagram-reverseproxy
+            docker tag udagram-reverseproxy nguyenducanh1999/udagram-reverseproxy
+
+            echo "-------- All images succesfully built----------"
+
+            echo " ------- login in to hub--------"
+
+            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+
+            echo "-------------- Pushing images to dockerhub-------"
+
+            docker push nguyenducanh1999/udagram-api-feed
+            docker push nguyenducanh1999/udagram-api-user
+            docker push nguyenducanh1999/udagram-frontend
+            docker push nguyenducanh1999/udagram-reverseproxy
+
+workflows:
+  default:
+    jobs:
+      - lint-app
+      - build-docker:
+          requires: [lint-app]
